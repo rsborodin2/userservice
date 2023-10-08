@@ -1,16 +1,19 @@
 package rborodin.skillgram.userservice.entity;
 
-import org.hibernate.annotations.SQLDelete;
-import org.hibernate.annotations.Where;
+import org.hibernate.annotations.*;
 
 import javax.persistence.*;
+import javax.persistence.Entity;
+import javax.persistence.Table;
 import java.util.Date;
 import java.util.UUID;
 
 @Entity
 @Table(name= "users", schema = "users_scheme")
-@SQLDelete(sql = "UPDATE users SET deleted = true WHERE id=?")
+@SQLDelete(sql = "UPDATE users_scheme.users SET deleted = true WHERE id=?")
 @Where(clause = "deleted=false")
+@FilterDef(name = "deletedProductFilter", parameters = @ParamDef(name = "isDeleted", type = "boolean"))
+@Filter(name = "deletedProductFilter", condition = "deleted = :isDeleted")
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)

@@ -4,7 +4,10 @@ import org.springframework.web.bind.annotation.*;
 import rborodin.skillgram.userservice.entity.User;
 import rborodin.skillgram.userservice.service.UserService;
 
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 @RestController
 @RequestMapping(value = "/users")
@@ -36,6 +39,11 @@ public class UserController {
         return userService.deleteUser(id);
     }
 
-
+    @GetMapping
+    Iterable<User> findAll(){
+        return StreamSupport.stream(userService.findAll().spliterator(), false)
+                .filter(x->!x.getDeleted())
+                .collect(Collectors.toList());
+    }
 
 }

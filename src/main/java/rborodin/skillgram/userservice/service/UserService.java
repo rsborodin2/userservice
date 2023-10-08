@@ -6,6 +6,7 @@ import org.springframework.web.server.ResponseStatusException;
 import rborodin.skillgram.userservice.entity.User;
 import rborodin.skillgram.userservice.repository.UserRepository;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -39,5 +40,9 @@ public class UserService {
             userRepository.deleteById(id);
         } else throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         return String.format("Пользователь с id=%s успешно удален", id);
+    }
+
+    public Iterable<User> findAll() {
+        return userRepository.findAll();
     }
 }
