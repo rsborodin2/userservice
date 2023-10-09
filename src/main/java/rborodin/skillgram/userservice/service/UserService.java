@@ -6,7 +6,6 @@ import org.springframework.web.server.ResponseStatusException;
 import rborodin.skillgram.userservice.entity.User;
 import rborodin.skillgram.userservice.repository.UserRepository;
 
-import java.util.List;
 import java.util.UUID;
 
 @Service
