@@ -26,10 +26,14 @@ public class FollowService {
     }
 
     public String createFollow(UUID id, UUID followingUserId) {
-         User follower = userRepository.findById(id).orElseThrow();
-        User following = userRepository.findById(followingUserId).orElseThrow();
-        Follow savedFollow = followRepository.save(new Follow(follower, following));
-        return String.format("Подписка пользователля с id %s на пользователя с id %s добавлена в базу", savedFollow.getFollowerUser().getId(), savedFollow.getFollowingUser().getId());
+        User follower = userRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        User following = userRepository.findById(followingUserId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (following.getDeleted() == Boolean.TRUE) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,String.format("Невозможно подписаться на пользователя с id %s, так как страница была удалена",followingUserId));
+        } else {
+            Follow savedFollow = followRepository.save(new Follow(follower, following));
+            return String.format("Подписка пользователля с id %s на пользователя с id %s добавлена в базу", savedFollow.getFollowerUser().getId(), savedFollow.getFollowingUser().getId());
+        }
     }
 
     public String deleteFollow(UUID followerUserId, UUID followingUserId) {
@@ -43,7 +47,6 @@ public class FollowService {
         if (userRepository.existsById(uuid)) {
             return followRepository.findByFollowerUserId(uuid);
         } else throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-
     }
 
 }
