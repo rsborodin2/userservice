@@ -14,7 +14,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Embeddable
-@Table(name = "follows", schema = "users_scheme")
+@Table(name = "follows", schema = "users_schema")
 public class FollowId implements Serializable {
 
     @Column(name = "follower_user_id")
