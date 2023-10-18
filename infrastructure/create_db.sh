@@ -1,0 +1,1 @@
+cat user_schema_tables_init | docker exec psql -U $1 -d $2
