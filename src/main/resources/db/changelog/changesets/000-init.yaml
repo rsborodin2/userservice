@@ -1,0 +1,89 @@
+databaseChangeLog:
+  - changeSet:
+      id: 000-1
+      author: ruslan borodin
+      changes:
+        - createTable:
+            tableName: users
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: surname
+                  type: varchar
+                  constraints:
+                    nullable: false
+              - column:
+                  name: firstname
+                  type: varchar
+                  constraints:
+                    nullable: false
+              - column:
+                  name: secondname
+                  type: varchar
+              - column:
+                  name: birth
+                  type: date
+                  constraints:
+                    nullable: false
+              - column:
+                  name: gender
+                  type: varchar
+                  constraints:
+                    nullable: false
+              - column:
+                  name: email
+                  type: varchar
+                  constraints:
+                    nullable: false
+              - column:
+                  name: deleted
+                  type: boolean
+                  constraints:
+                    nullable: false
+  - changeSet:
+      id: 000-2
+      author: ruslan borodin
+      changes:
+        - createTable:
+            tableName: follows
+            columns:
+              - column:
+                  name: follower_user_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: following_user_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: date
+                  constraints:
+                    nullable: false
+  - changeSet:
+      id: 000-3
+      author: ruslan borodin
+      changes:
+        - addPrimaryKey:
+            tableName: follows
+            constraintName: follower_user_id_following_user_id
+            columnNames: follower_user_id,following_user_id
+        - addForeignKeyConstraint:
+            constraintName: follower_user_id
+            baseTableName: follows
+            baseColumnNames: follower_user_id
+            referencedTableName: users
+            referencedColumnNames: id
+        - addForeignKeyConstraint:
+            constraintName: following_user_id
+            baseTableName: follows
+            baseColumnNames: following_user_id
+            referencedTableName: users
+            referencedColumnNames: id
