@@ -1,7 +1,7 @@
 version: '3.8'
 services:
   client-backend:
-    image: userservice-app:0.0.1
+    image: userservice-app
     build:
       context: .
       dockerfile: Dockerfile
