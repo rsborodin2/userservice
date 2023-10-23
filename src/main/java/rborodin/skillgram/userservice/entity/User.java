@@ -58,4 +58,16 @@ public class User {
         this.phone = phone;
         this.deleted = deleted;
     }
+
+    public User(UUID id, String firstname, String surname, String secondname, Date birth, String gender, String email, String phone, Boolean deleted) {
+        this.id = id;
+        this.firstname = firstname;
+        this.surname = surname;
+        this.secondname = secondname;
+        this.birth = birth;
+        this.gender = gender;
+        this.email = email;
+        this.phone = phone;
+        this.deleted = deleted;
+    }
 }
