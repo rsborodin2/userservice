@@ -1,4 +1,4 @@
-package rborodin.skillgram.userservice.service;
+package rborodin.skillgram.userservice.unit_tests.service;
 
 import org.instancio.Instancio;
 import org.junit.jupiter.api.Assertions;
@@ -12,6 +12,7 @@ import rborodin.skillgram.userservice.entity.FollowId;
 import rborodin.skillgram.userservice.entity.User;
 import rborodin.skillgram.userservice.repository.FollowRepository;
 import rborodin.skillgram.userservice.repository.UserRepository;
+import rborodin.skillgram.userservice.service.FollowService;
 
 import java.util.List;
 import java.util.Optional;

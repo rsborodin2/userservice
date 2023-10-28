@@ -1,11 +1,13 @@
-package rborodin.skillgram.userservice.controller;
+package rborodin.skillgram.userservice.module_tests.controller;
 
 import org.instancio.Instancio;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -28,8 +30,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class UserControllerTest {
 
-    @LocalServerPort
-    private Integer port;
+    @Autowired
+    MockMvc mockMvc;
+
     List<User> users;
     List<User> usersCreated;
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15");
@@ -86,8 +89,7 @@ class UserControllerTest {
     }
 
 
-    @Autowired
-    MockMvc mockMvc;
+
 
 
     @Test

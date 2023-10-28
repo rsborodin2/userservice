@@ -1,4 +1,4 @@
-package rborodin.skillgram.userservice.service;
+package rborodin.skillgram.userservice.unit_tests.service;
 
 import org.instancio.Instancio;
 import org.junit.jupiter.api.Assertions;
@@ -9,6 +9,7 @@ import org.mockito.Mockito;
 import org.springframework.web.server.ResponseStatusException;
 import rborodin.skillgram.userservice.entity.User;
 import rborodin.skillgram.userservice.repository.UserRepository;
+import rborodin.skillgram.userservice.service.UserService;
 
 import javax.persistence.PersistenceException;
 import java.text.ParseException;
