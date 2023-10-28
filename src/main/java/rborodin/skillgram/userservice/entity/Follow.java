@@ -13,7 +13,7 @@ import java.util.Date;
 @Setter
 @NoArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
-@Table(name = "follows", schema = "users_schema")
+@Table(name = "follows")
 @Entity
 public class Follow {
 

@@ -9,4 +9,4 @@ spring:
     database-platform: org.hibernate.dialect.PostgreSQL10Dialect
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
-    default-schema: users_schema
+    #default-schema: users_schema

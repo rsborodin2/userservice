@@ -1,63 +1,82 @@
 package rborodin.skillgram.userservice.controller;
 
 import org.instancio.Instancio;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mockito;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import rborodin.skillgram.userservice.UserserviceApplication;
 import rborodin.skillgram.userservice.entity.User;
 import rborodin.skillgram.userservice.helper.JsonHelper;
-import rborodin.skillgram.userservice.repository.FollowRepository;
-import rborodin.skillgram.userservice.repository.UserRepository;
-import rborodin.skillgram.userservice.service.FollowService;
-import rborodin.skillgram.userservice.service.UserService;
 
-import java.util.UUID;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import static org.instancio.Select.field;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-@DataJpaTest
-
-@Testcontainers
-@EnableJpaRepositories(basePackages = "rborodin.skillgram.userservice.repository")
+@Transactional
 @AutoConfigureMockMvc()
+@Testcontainers
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class UserControllerTest {
 
     @LocalServerPort
     private Integer port;
-
+    List<User> users;
+    List<User> usersCreated;
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15");
 
-    @BeforeAll
-    static void beforeAll(){
-        postgres.start();
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", postgres::getJdbcUrl);
+        registry.add("spring.datasource.username", postgres::getUsername);
+        registry.add("spring.datasource.password", postgres::getPassword);
+
     }
 
+    @BeforeAll
+    static void beforeAll() {
+        postgres.start();
+
+    }
+
+    @BeforeEach
+    void beforeEach() throws Exception {
+        users = Instancio.ofList(User.class).size(10)
+                .ignore(field(User::getId))
+                .set(field(User::getDeleted), false)
+                .create();
+        users.forEach(x -> {
+            try {
+                mockMvc.perform(post("/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(JsonHelper.toJson(x))
+                        .accept(MediaType.APPLICATION_JSON));
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+
+        usersCreated = JsonHelper.parseJsonArray(mockMvc.perform(get("/users")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8), User.class);
+    }
+
+
     @AfterAll
-    static void afterAll(){
+    static void afterAll() {
         postgres.stop();
     }
 
@@ -66,28 +85,9 @@ class UserControllerTest {
     void contextLoads() {
     }
 
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry){
-        registry.add("spring.datasource.url",postgres::getJdbcUrl);
-        registry.add("spring.datasource.username",postgres::getUsername);
-        registry.add("spring.datasource.password",postgres::getPassword);
-
-    }
-
 
     @Autowired
-    static MockMvc mockMvc;
-    @Autowired
-    static UserRepository userRepository;
-    @Autowired
-    static UserService userService;
-
-    @BeforeEach
-    private void init() {
-        userRepository = Mockito.mock(UserRepository.class);
-        userService = new UserService(userRepository);
-
-    }
+    MockMvc mockMvc;
 
 
     @Test
@@ -96,32 +96,88 @@ class UserControllerTest {
                 .ignore(field(User::getId))
                 .set(field(User::getDeleted), false)
                 .create();
-        User createdUser = user;
-        createdUser.setId(UUID.randomUUID());
-        Mockito.when(userRepository.save(user)).thenReturn(createdUser);
-
-        Mockito.when(userService.createUser(user)).thenReturn("Пользователь " + user.getSurname() + " добавлен в базу с id = " + user.getId().toString());
-        mockMvc.perform(post("/users")
+        String result = mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(JsonHelper.toJson(user))
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").exists());
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+        Assertions.assertTrue(result.contains("Пользователь " + user.getSurname() + " добавлен в базу с id = "));
+
+        String resultGet = mockMvc.perform(get("/users")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+        Assertions.assertEquals(JsonHelper.parseJsonArray(resultGet, User.class).size(), users.size() + 1);
     }
 
     @Test
-    void getUserById() {
+    void getUserById() throws Exception {
+        User userToFind = usersCreated.get(0);
+        String resultGet = mockMvc.perform(get("/users/" + userToFind.getId())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+        Assertions.assertEquals(usersCreated.get(0), JsonHelper.fromJson(User.class, resultGet));
     }
 
     @Test
-    void updateUser() {
+    void updateUser() throws Exception {
+        User userToUpdate = usersCreated.get(0);
+        userToUpdate.setFirstname("Новое_имя");
+        String result = mockMvc.perform(put("/users/" + usersCreated.get(0).getId())
+                        .content(JsonHelper.toJson(userToUpdate))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+        Assertions.assertEquals(String.format("Пользователь с id=%s успешно сохранен", userToUpdate.getId().toString()),result);
+
+        String resultGet = mockMvc.perform(get("/users/" + userToUpdate.getId())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+        Assertions.assertEquals(JsonHelper.fromJson(User.class,resultGet).getFirstname(), "Новое_имя");
+
     }
 
     @Test
-    void deleteUser() {
+    void deleteUser() throws Exception {
+        User userDelete = usersCreated.get(0);
+        String resultDelete = mockMvc.perform(delete("/users/" + userDelete.getId())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+        Assertions.assertEquals(String.format("Пользователь с id=%s успешно удален", userDelete.getId()), resultDelete);
+
+        String resultGet = mockMvc.perform(get("/users")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+        Assertions.assertEquals(JsonHelper.parseJsonArray(resultGet, User.class).size(), users.size() - 1);
     }
 
     @Test
-    void findAll() {
+    void findAll() throws Exception {
+        String result = mockMvc.perform(get("/users")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+        Assertions.assertEquals(JsonHelper.parseJsonArray(result, User.class).size(), users.size());
     }
 }

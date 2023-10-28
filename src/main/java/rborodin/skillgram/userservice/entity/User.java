@@ -12,8 +12,8 @@ import javax.persistence.Table;
 import java.util.*;
 
 @Entity
-@Table(name = "users", schema = "users_schema")
-@SQLDelete(sql = "UPDATE users_schema.users SET deleted = true WHERE id=?")
+@Table(name = "users")
+@SQLDelete(sql = "UPDATE users SET deleted = true WHERE id=?")
 @Where(clause = "deleted=false")
 @FilterDef(name = "deletedProductFilter", parameters = @ParamDef(name = "isDeleted", type = "boolean"))
 @Filter(name = "deletedProductFilter", condition = "deleted = :isDeleted")

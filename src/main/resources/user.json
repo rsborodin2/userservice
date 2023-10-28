@@ -1,5 +1,4 @@
-//        User user = new User("Vasya", "Petrov", "Vasilievich", new SimpleDateFormat("yyyy-mm-dd").parse(date.toString()), "MALE", "email@mail.ru", "9478475348509", false);
-{
+[{
   "firstname": "Vasya",
   "surname": "Petrov",
   "secondname": "Vasilievich",
@@ -8,4 +7,14 @@
   "email": "mail@mai.ru",
   "phone": "23120114214213",
   "deleted": false
-}
+},
+{
+  "firstname": "Roman",
+  "surname": "Grigorenko",
+  "secondname": "Vasilievich",
+  "birth": "1995-07-19",
+  "gender": "male",
+  "email": "mail@mai.ru",
+  "phone": "23120114214213",
+  "deleted": false
+}]

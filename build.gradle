@@ -40,6 +40,7 @@ dependencies {
 
 	// integration test own dependencies
 	testImplementation 'org.testcontainers:postgresql:1.19.1'
+	testImplementation "org.testcontainers:testcontainers:1.19.1"
 	testImplementation 'com.h2database:h2:2.2.224'
 	testImplementation "org.wiremock:wiremock:3.2.0"
 	testImplementation 'org.testcontainers:junit-jupiter:1.19.1'
