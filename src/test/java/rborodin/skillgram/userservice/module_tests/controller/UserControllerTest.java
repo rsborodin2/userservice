@@ -93,7 +93,7 @@ class UserControllerTest {
 
 
     @Test
-    void createUser() throws Exception {
+    void createUserSuccessful() throws Exception {
         User user = Instancio.of(User.class)
                 .ignore(field(User::getId))
                 .set(field(User::getDeleted), false)
@@ -118,7 +118,32 @@ class UserControllerTest {
     }
 
     @Test
-    void getUserById() throws Exception {
+    void createUserError() throws Exception {
+        User user = Instancio.of(User.class)
+                .ignore(field(User::getId))
+                .set(field(User::getDeleted), false)
+                .create();
+        String result = mockMvc.perform(post("/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(JsonHelper.toJson(user))
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+        Assertions.assertTrue(result.contains("Пользователь " + user.getSurname() + " добавлен в базу с id = "));
+
+        String resultGet = mockMvc.perform(get("/users")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+        Assertions.assertEquals(JsonHelper.parseJsonArray(resultGet, User.class).size(), users.size() + 1);
+    }
+
+    @Test
+    void getUserByIdSuccessful() throws Exception {
         User userToFind = usersCreated.get(0);
         String resultGet = mockMvc.perform(get("/users/" + userToFind.getId())
                         .contentType(MediaType.APPLICATION_JSON))
@@ -130,7 +155,7 @@ class UserControllerTest {
     }
 
     @Test
-    void updateUser() throws Exception {
+    void updateUserSuccessful() throws Exception {
         User userToUpdate = usersCreated.get(0);
         userToUpdate.setFirstname("Новое_имя");
         String result = mockMvc.perform(put("/users/" + usersCreated.get(0).getId())
@@ -153,7 +178,7 @@ class UserControllerTest {
     }
 
     @Test
-    void deleteUser() throws Exception {
+    void deleteUserSuccessful() throws Exception {
         User userDelete = usersCreated.get(0);
         String resultDelete = mockMvc.perform(delete("/users/" + userDelete.getId())
                         .contentType(MediaType.APPLICATION_JSON))
@@ -173,7 +198,7 @@ class UserControllerTest {
     }
 
     @Test
-    void findAll() throws Exception {
+    void findAllSuccessful() throws Exception {
         String result = mockMvc.perform(get("/users")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
