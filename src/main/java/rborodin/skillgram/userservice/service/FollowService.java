@@ -9,6 +9,8 @@ import rborodin.skillgram.userservice.entity.User;
 import rborodin.skillgram.userservice.repository.FollowRepository;
 import rborodin.skillgram.userservice.repository.UserRepository;
 
+import java.time.Instant;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,7 +33,9 @@ public class FollowService {
         if (following.getDeleted() == Boolean.TRUE) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,String.format("Невозможно подписаться на пользователя с id %s, так как страница была удалена",followingUserId));
         } else {
-            Follow savedFollow = followRepository.save(new Follow(follower, following));
+            Follow follow =new Follow(follower, following);
+            follow.setCreatedAt(Date.from(Instant.now()));
+            Follow savedFollow = followRepository.save(follow);
             return String.format("Подписка пользователля с id %s на пользователя с id %s добавлена в базу", savedFollow.getFollowerUser().getId(), savedFollow.getFollowingUser().getId());
         }
     }
