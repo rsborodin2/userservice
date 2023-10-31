@@ -5,9 +5,6 @@ import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -20,10 +17,16 @@ import rborodin.skillgram.userservice.helper.JsonHelper;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.UUID;
 
+import static java.util.Objects.requireNonNull;
 import static org.instancio.Select.field;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+/**
+ * Класс для модульного тестирования раздела пользователей
+ */
 @Transactional
 @AutoConfigureMockMvc()
 @Testcontainers
@@ -37,6 +40,10 @@ class UserControllerTest {
     List<User> usersCreated;
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15");
 
+    /**
+     * Настройка Testcontainer Postgres
+     * @param registry
+     */
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
@@ -51,8 +58,14 @@ class UserControllerTest {
 
     }
 
+    /**
+     * Создание и инициализация тестовых данных
+     * @throws Exception
+     */
     @BeforeEach
     void beforeEach() throws Exception {
+
+        // Добавление тестовых пользователей
         users = Instancio.ofList(User.class).size(10)
                 .ignore(field(User::getId))
                 .set(field(User::getDeleted), false)
@@ -67,7 +80,6 @@ class UserControllerTest {
                 throw new RuntimeException(e);
             }
         });
-
 
         usersCreated = JsonHelper.parseJsonArray(mockMvc.perform(get("/users")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -89,10 +101,8 @@ class UserControllerTest {
     }
 
 
-
-
-
     @Test
+    @DisplayName("Пользователь успешно создан -> получаем ответ 200; выполнено добавление пользователя в БД")
     void createUserSuccessful() throws Exception {
         User user = Instancio.of(User.class)
                 .ignore(field(User::getId))
@@ -118,20 +128,16 @@ class UserControllerTest {
     }
 
     @Test
+    @DisplayName("Неудачное создание пользователя -> получаем ответ 400; пользователь не добавлен в БД")
     void createUserError() throws Exception {
-        User user = Instancio.of(User.class)
-                .ignore(field(User::getId))
-                .set(field(User::getDeleted), false)
-                .create();
-        String result = mockMvc.perform(post("/users")
+        mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(JsonHelper.toJson(user))
+                        .content("error")
                         .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
+                .andExpect(status().isBadRequest())
                 .andReturn()
                 .getResponse()
                 .getContentAsString(StandardCharsets.UTF_8);
-        Assertions.assertTrue(result.contains("Пользователь " + user.getSurname() + " добавлен в базу с id = "));
 
         String resultGet = mockMvc.perform(get("/users")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -139,11 +145,12 @@ class UserControllerTest {
                 .andReturn()
                 .getResponse()
                 .getContentAsString(StandardCharsets.UTF_8);
-        Assertions.assertEquals(JsonHelper.parseJsonArray(resultGet, User.class).size(), users.size() + 1);
+        Assertions.assertEquals(JsonHelper.parseJsonArray(resultGet, User.class).size(), users.size());
     }
 
     @Test
-    void getUserByIdSuccessful() throws Exception {
+    @DisplayName("Пользователь успешно найден по полю ID -> получаем ответ 200")
+    void findByIdSuccessful() throws Exception {
         User userToFind = usersCreated.get(0);
         String resultGet = mockMvc.perform(get("/users/" + userToFind.getId())
                         .contentType(MediaType.APPLICATION_JSON))
@@ -155,6 +162,35 @@ class UserControllerTest {
     }
 
     @Test
+    @DisplayName("Пользователь не найден по полю ID -> получаем ответ 404")
+    void findByIdNotFound() throws Exception {
+        mockMvc.perform(get("/users/" + UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("Пользователь не найден по полю ID -> получаем ответ 404; запись не обновлена в БД")
+    void updateUserNotFound() throws Exception {
+        User userToUpdate = usersCreated.get(0);
+        userToUpdate.setFirstname("Новое_имя");
+        mockMvc.perform(put("/users/" + UUID.randomUUID())
+                        .content(JsonHelper.toJson(userToUpdate))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+
+        String resultGet = mockMvc.perform(get("/users/" + userToUpdate.getId())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+        Assertions.assertNotEquals(usersCreated.get(0), requireNonNull(JsonHelper.fromJson(User.class, resultGet)));
+
+    }
+
+    @Test
+    @DisplayName("Пользователь успешно обновлен -> получаем ответ 200; обновлена запись в БД")
     void updateUserSuccessful() throws Exception {
         User userToUpdate = usersCreated.get(0);
         userToUpdate.setFirstname("Новое_имя");
@@ -165,7 +201,7 @@ class UserControllerTest {
                 .andReturn()
                 .getResponse()
                 .getContentAsString(StandardCharsets.UTF_8);
-        Assertions.assertEquals(String.format("Пользователь с id=%s успешно сохранен", userToUpdate.getId().toString()),result);
+        Assertions.assertEquals(String.format("Пользователь с id=%s успешно сохранен", userToUpdate.getId().toString()), result);
 
         String resultGet = mockMvc.perform(get("/users/" + userToUpdate.getId())
                         .contentType(MediaType.APPLICATION_JSON))
@@ -173,11 +209,12 @@ class UserControllerTest {
                 .andReturn()
                 .getResponse()
                 .getContentAsString(StandardCharsets.UTF_8);
-        Assertions.assertEquals(JsonHelper.fromJson(User.class,resultGet).getFirstname(), "Новое_имя");
+        Assertions.assertEquals(JsonHelper.fromJson(User.class, resultGet).getFirstname(), "Новое_имя");
 
     }
 
     @Test
+    @DisplayName("Пользователь успешно удален -> получаем ответ 200; выполнено удаление пользователя в БД")
     void deleteUserSuccessful() throws Exception {
         User userDelete = usersCreated.get(0);
         String resultDelete = mockMvc.perform(delete("/users/" + userDelete.getId())
@@ -198,6 +235,23 @@ class UserControllerTest {
     }
 
     @Test
+    @DisplayName("Пользователь не найден по ID -> получаем ответ 200; запись в БД не удалена")
+    void deleteUserNotFound() throws Exception {
+        mockMvc.perform(delete("/users/" + UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+
+        String resultGet = mockMvc.perform(get("/users")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+        Assertions.assertEquals(JsonHelper.parseJsonArray(resultGet, User.class).size(), users.size());
+    }
+
+    @Test
+    @DisplayName("Все пользователи успешно найдены -> получаем ответ 200")
     void findAllSuccessful() throws Exception {
         String result = mockMvc.perform(get("/users")
                         .contentType(MediaType.APPLICATION_JSON))
