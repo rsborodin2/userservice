@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: C:\Users\scree\Downloads\kompose-windows-amd64.exe convert -c
+    kompose.version: 1.31.2 (a92241f79)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: client-backend
+  name: client-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: client-backend
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: C:\Users\scree\Downloads\kompose-windows-amd64.exe convert -c
+        kompose.version: 1.31.2 (a92241f79)
+      creationTimestamp: null
+      labels:
+        io.kompose.network/docker-default: "true"
+        io.kompose.service: client-backend
+    spec:
+      containers:
+        - env:
+            - name: SERVER_PORT
+              value: '8181'
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://host.docker.internal/users?useSSL=false
+          image: rborodin/userservice-app
+          imagePullPolicy: IfNotPresent
+          name: client-backend
+          ports:
+            - containerPort: 8181
+              hostPort: 8181
+              protocol: TCP
+          resources: {}
+      restartPolicy: Always
+status: {}
