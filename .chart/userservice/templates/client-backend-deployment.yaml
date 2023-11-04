@@ -6,12 +6,15 @@ metadata:
     kompose.version: 1.31.2 (a92241f79)
   creationTimestamp: null
   labels:
+    {{- include "sample-app.labels" . | nindent 4 }}
     io.kompose.service: client-backend
-  name: client-backend
+  name: {{ include "sample-app.fullname" . }}
+
 spec:
-  replicas: 1
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
+      {{- include "sample-app.selectorLabels" . | nindent 6 }}
       io.kompose.service: client-backend
   strategy: {}
   template:
@@ -23,6 +26,7 @@ spec:
       labels:
         io.kompose.network/docker-default: "true"
         io.kompose.service: client-backend
+        {{- include "sample-app.selectorLabels" . | nindent 8 }}
     spec:
       containers:
         - env:
@@ -40,3 +44,26 @@ spec:
           resources: {}
       restartPolicy: Always
 status: {}
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "sample-app.fullname" . }}
+  annotations:
+    kompose.cmd: C:\Users\scree\Downloads\kompose-windows-amd64.exe convert -c
+    kompose.version: 1.31.2 (a92241f79)
+  labels:
+    io.kompose.service: client-backend
+    {{- include "sample-app.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    io.kompose.service: client-backend
+    {{- include "sample-app.selectorLabels" . | nindent 4 }}

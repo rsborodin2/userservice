@@ -1,16 +1,2 @@
-appName: userservice
-ingressedService: userservice-backend-service
-apiHost: http://userservice-backend-service
-appHost: userservice.local
 
-apps:
-  client-backend:
-    appName: client-backend
-    replicasCount: 1
-    container:
-      image: rborodin/userservice-app
-      port: 8181
-    service:
-      port: 80
-    targetPort: 8080
 

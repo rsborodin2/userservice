@@ -47,3 +47,39 @@ spec:
           persistentVolumeClaim:
             claimName: db-data
 status: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: C:\Users\scree\Downloads\kompose-windows-amd64.exe convert -c
+    kompose.version: 1.31.2 (a92241f79)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: service-db
+  name: service-db
+spec:
+  ports:
+    - name: "5001"
+      port: 5001
+      targetPort: 5432
+  selector:
+    io.kompose.service: service-db
+status:
+  loadBalancer: {}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: db-data
+  name: db-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+status: {}
+
