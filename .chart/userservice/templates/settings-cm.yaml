@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: application-settings
+data:
+  settings.ini: |
+    # possible values : feature, develop, preprod
+    app_mode = {{ .Values.appMode }}
+
+    [postgres]
+    db_user = {{ .Values.databaseUser }}
+    db_password = {{ .Values.databasePassword }}

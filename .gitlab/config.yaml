@@ -1,0 +1,5 @@
+gitops:
+  manifest_projects:
+  - id: "skillbox175/microservices/kubernetes-infrastructure"
+    paths:
+    - glob: '/**/*.{yaml,yml,json}'
