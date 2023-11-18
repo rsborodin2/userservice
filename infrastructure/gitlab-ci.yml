@@ -1,112 +1,14 @@
-# Как и в любом другом пайплайне, тут можно объявлять переменные
 variables:
-# Укажем имя для релиза helm chart'a
-    APP_RELEASE: restful-app
-# Имена для веток разработки и релиза
-    BRANCH_DEV: dev
-    BRANCH_RELEASE: main
-# Название промышленного окружения
-    ENV_PRODUCTION: prod
-# И образ для пайплайна с kubectl и helm
-    IMG_K8S: alpine/k8s:1.20.15
-
-# Объявим этапы
-# - деплой на среды отличные от продакшена
-# - создание релиза в Gitlab
-# - деплой на продакшен окружение
-stages:
-- deploy
-- release
-- production
-
-# Опишем шаблон деплоя, чтобы не писать его снова и снова. В Gitlab имена шаблонов начинают с точки
-.deploy:
-# Указываем этап, образ и команду деплоя при помощи helm
-    stage: deploy
-    image: $IMG_K8S
-    script:
-    - echo "Starting"
-    - kubectl config use-context rborodin/skillbox_microservices/kubernetes-infrastructure:infrastructure-gla
-    - helm upgrade $APP_RELEASE-$ENV . -f values-$ENV.yaml --atomic --force --debug --install
-# В блоке environment указываем имя окружения, это позволит gitlab поддерживать историю деплоев на разные среды, что может быть интересно в будущем для анализа активности по проекту
-    environment:
-        name: $ENV
-
-# Опишем шаг деплоя в dev окружение
-deploy-to-dev:
-# указываем родительский шаблон
-    extends: .deploy
-# И конкретные значения переменных, которые в него передаются
-    variables:
-        ENV: develop
-# В блоке only укажем что шаг должен запускаться только при коммитах в ветку dev
-# Если ветка отличается, то шаг будет пропущен
+    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"  # Defines the location of the analysis task cache
+    GIT_DEPTH: "0"  # Tells git to fetch all the branches of the project, required by the analysis task
+sonarcloud-check:
+    image: gradle:jdk17
+    cache:
+        key: "${CI_JOB_NAME}"
+        paths:
+            - .sonar/cache
+    script: gradle sonarqube
     only:
-        - dev
-
-# Теперь опишем деплой в тестовое окружение
-deploy-to-reviews:
-    extends: .deploy
-    variables:
-        ENV: reviews
-# Другой способ для описания условий для запуска пайплайна - блок rules
-    rules:
-# Тут можно задать условие: название ветки с коммитом должно совпадать со значением переменной $BRANCH_DEV
-# when: manual означает что требуется подтверждение для запуска этого шага (мы ведь не хотим случайно сломать тестерам их окружение)
-# пайлайн будет находиться в состоянии blocked до тех пор, пока шаг не будет подтвержден
-    - if: $CI_COMMIT_BRANCH == $BRANCH_DEV
-    when: manual
-
-# Деплой в препрод будем осуществлять только после мержа dev -> main, так мы обеспечим больший контроль над релизами
-deploy-to-preprod:
-    extends: .deploy
-    variables:
-        ENV: preprod
-    rules:
-        - if: $CI_COMMIT_REF_NAME == $BRANCH_RELEASE
-
-# В случае если у коммита есть тэг, мы так же создадим и релиз в Gitlab, он нам тоже пригодится для истории
-release:
-    stage: release
-    image: registry.gitlab.com/gitlab-org/release-cli:latest
-    release:
-        tag_name: $CI_COMMIT_TAG
-        description: "$CI_COMMIT_MESSAGE"
-# Ключевое слово tags указывает что данный шаг будет применим только к коммитам тегов
-    only:
-        - tags
-    script:
-        - echo "Creating release"
-
-# Шаг деплоя в продакшен выделим в отдельный этап, т.к. это важная веха в жизненном цикле приложения
-deploy-to-production:
-    stage: production
-    extends: .deploy
-    variables:
-        ENV: $ENV_PRODUCTION
-# Деплоить в продакшен мы можем только из релизной ветки и только после ручного подтверждения, когда все участники процесса к этому готовы. Пока не получим подтверждение выполнение пайплайна будет заблокировано.
-    rules:
-        - if: $CI_COMMIT_REF_NAME == $BRANCH_RELEASE
-    when: manual
-
-# Добавим к шагу деплой и шаг отката. Вообще в Gitlab CI откаты обычно реализуют иначе, достаточно просто заново запустить любой предыдущий пайплайн, при этом гитлаб переключится на соответствующий коммит и выполнит шаги раскатки предыдущей стабильной версии. Такой подход не зависит от инструментов автоматизации, и может применяться в любом проекте.
-# Тут для примера откат выполняет отдельным опциональным шагом при помощи helm rollback, причем сам шаг доступен только после того как выполнится деплой и требует ручного запуска.
-rollback:
-    stage: production
-    image: $IMG_K8S
-    interruptible: true
-# Откат доступен только после выполнения шага deploy-to-production
-    needs:
-        - deploy-to-production
-# В блоке only можно использовать форму variables, которая позволяет сравнивать друг с другом переменные и еще гибче настраивать условия пропуска шага. В отличии от блока rules, использование only не блокирует пайплайн, но шаг все же можно запустить вручную, именно такое поведение нам нужно для этого шага.
-    only:
-        variables:
-            - $CI_COMMIT_REF_NAME == $BRANCH_RELEASE
-# Обязательно запускаем только руками
-    when: manual
-# Факт отката так же фиксируем в истории деплоев
-    environment:
-        name: $ENV_PRODUCTION
-# Сам откат будем делать при помощи helm rollback
-    script:
-        - helm rollback $APP_RELEASE-$ENV_PRODUCTION
+        - merge_requests
+        - master
+        - develop
