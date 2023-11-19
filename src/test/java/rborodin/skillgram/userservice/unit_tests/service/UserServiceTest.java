@@ -177,4 +177,10 @@ class UserServiceTest {
         //then
         Assertions.assertEquals(users.toString(), result);
     }
+
+    @Test
+    void testSonar(){
+        System.out.println("TEST!");
+    }
+
 }
